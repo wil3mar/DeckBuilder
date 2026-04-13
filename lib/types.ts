@@ -162,6 +162,38 @@ export interface Settings {
   github_token_encrypted: string | null;
 }
 
+// ── Claude integration types ─────────────────────────────────
+
+export interface ObservationItem {
+  severity: 'warn' | 'info';
+  message: string;
+}
+
+export type ClaudeAction =
+  | 'write_prompt'
+  | 'sharpen_tone'
+  | 'make_funnier'
+  | 'shorter'
+  | 'suggest_deltas'
+  | 'suggest_conditions'
+  | 'chat'
+  | 'observations';
+
+export interface ClaudeRequest {
+  action: ClaudeAction;
+  card: Card;
+  side?: 'yes' | 'no';
+  message?: string;
+  history?: { role: 'user' | 'assistant'; content: string }[];
+}
+
+export type ClaudeResponse =
+  | { action: 'write_prompt' | 'sharpen_tone' | 'make_funnier' | 'shorter'; text: string }
+  | { action: 'suggest_deltas'; deltas: Record<string, number> }
+  | { action: 'suggest_conditions'; conditions: ICondition[] }
+  | { action: 'chat'; reply: string }
+  | { action: 'observations'; items: ObservationItem[] };
+
 // ── API convenience types ─────────────────────────────────────
 
 export type CardCreateInput = Omit<Card, 'id' | 'created_at' | 'updated_at'>;
