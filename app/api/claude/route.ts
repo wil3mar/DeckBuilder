@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
-import { getSnapshot } from '@/lib/context-cache'
+import { ensureSnapshot } from '@/lib/build-snapshot'
 import type { ClaudeRequest, ClaudeResponse } from '@/lib/types'
 import type { GameStateSnapshot } from '@/lib/context-cache'
 
@@ -172,7 +172,7 @@ Return an empty items array if the card looks good.`
 
 export async function POST(request: NextRequest) {
   const body: ClaudeRequest = await request.json()
-  const snapshot = getSnapshot()
+  const snapshot = await ensureSnapshot()
   const systemPrompt = buildSystemPrompt(snapshot)
 
   const messages: Anthropic.MessageParam[] = []

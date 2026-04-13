@@ -6,6 +6,7 @@ import type { Card, ObservationItem, ICondition, ClaudeRequest, ClaudeResponse }
 interface ClaudePanelProps {
   card: Card | null
   cardId: string | null
+  width: number
   onPromptUpdate: (text: string) => void
   onYesDeltaUpdate: (deltas: Record<string, number>) => void
   onNoDeltaUpdate: (deltas: Record<string, number>) => void
@@ -35,6 +36,7 @@ async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
 export default function ClaudePanel({
   card,
   cardId,
+  width,
   onPromptUpdate,
   onYesDeltaUpdate,
   onNoDeltaUpdate,
@@ -142,7 +144,7 @@ export default function ClaudePanel({
   }
 
   return (
-    <div className="w-[220px] min-w-[220px] bg-gray-900 border-l border-gray-800 flex flex-col text-xs overflow-hidden">
+    <div className="bg-gray-900 border-l border-gray-800 flex flex-col text-xs overflow-hidden" style={{ width, minWidth: width, flexShrink: 0 }}>
       {/* Header */}
       <div className="px-3 py-2 border-b border-gray-800 shrink-0">
         <span className="font-semibold text-indigo-400">✦ Claude</span>

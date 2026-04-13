@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import CardList from '@/components/CardList'
 import CardEditor from '@/components/CardEditor'
 import ClaudePanel from '@/components/ClaudePanel'
@@ -9,6 +9,8 @@ import type { Card, ICondition } from '@/lib/types'
 export default function DeckBuilderPage() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [claudeWidth, setClaudeWidth] = useState(220)
+  const resizeRef = useRef<{ startX: number; startWidth: number } | null>(null)
 
   // Live form state — CardEditor reports here; ClaudePanel reads from here
   const [liveCard, setLiveCard] = useState<Card | null>(null)
@@ -59,6 +61,26 @@ export default function DeckBuilderPage() {
     setTimeout(() => setConditionOverride(undefined), 100)
   }, [])
 
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    resizeRef.current = { startX: e.clientX, startWidth: claudeWidth }
+
+    function onMove(e: MouseEvent) {
+      if (!resizeRef.current) return
+      const dx = resizeRef.current.startX - e.clientX
+      setClaudeWidth(Math.max(180, Math.min(600, resizeRef.current.startWidth + dx)))
+    }
+
+    function onUp() {
+      resizeRef.current = null
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+    }
+
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }, [claudeWidth])
+
   return (
     <div className="flex h-full overflow-hidden">
       {/* Card list panel */}
@@ -87,10 +109,17 @@ export default function DeckBuilderPage() {
         />
       </div>
 
+      {/* Resize handle */}
+      <div
+        className="w-1 shrink-0 cursor-col-resize hover:bg-indigo-600 transition-colors bg-gray-800"
+        onMouseDown={handleResizeStart}
+      />
+
       {/* Claude panel */}
       <ClaudePanel
         card={liveCard}
         cardId={selectedCardId}
+        width={claudeWidth}
         onPromptUpdate={handlePromptUpdate}
         onYesDeltaUpdate={handleYesDeltaUpdate}
         onNoDeltaUpdate={handleNoDeltaUpdate}

@@ -72,7 +72,7 @@ export default function SettingsPage() {
           Deck Guide
         </label>
         <p className="text-xs text-gray-600 mb-2">
-          Structural guidance: stage progression, thematic groups, chain patterns, balance targets. Claude uses this to suggest deltas and conditions that fit your deck's design.
+          Structural guidance: stage progression, thematic groups, chain patterns, balance targets. Claude uses this to suggest deltas and conditions that fit your deck&apos;s design.
         </p>
         <textarea
           value={deckGuide}
