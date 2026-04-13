@@ -4,9 +4,9 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET() {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('pillars')
-    .select('id, slug, display_name, start_value, floor, ceiling, is_killer, icon, color, sort_order')
-    .order('sort_order')
+    .from('milestones')
+    .select('id, slug, title, description, conditions, achievement, created_at')
+    .order('title')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json(data ?? [])
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
 
   const { data, error } = await supabase
-    .from('pillars')
+    .from('milestones')
     .insert(body)
     .select()
     .single()
