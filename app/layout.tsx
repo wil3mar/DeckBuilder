@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { createClient } from '@/lib/supabase/server'
-import Sidebar from '@/components/Sidebar'
+import AppShell from '@/components/AppShell'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -18,12 +18,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en">
       <body className={`${inter.className} bg-gray-950 text-white`}>
         {user ? (
-          <div className="flex h-screen overflow-hidden">
-            <Sidebar />
-            <main className="flex-1 overflow-auto">
-              {children}
-            </main>
-          </div>
+          <AppShell>{children}</AppShell>
         ) : (
           children
         )}

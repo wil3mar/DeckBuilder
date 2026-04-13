@@ -54,7 +54,7 @@ ${snapshot.deck_guide ? `## Deck Guide\n${snapshot.deck_guide}\n` : ''}
 - Condition suggestions should use only pillar slugs and flag names that already exist in the registry.`
 }
 
-function cardSummary(card: ClaudeRequest['card']): string {
+function cardSummary(card: NonNullable<ClaudeRequest['card']>): string {
   return JSON.stringify({
     slug: card.slug,
     thematic: card.thematic,
@@ -74,7 +74,10 @@ function cardSummary(card: ClaudeRequest['card']): string {
 }
 
 function buildUserMessage(req: ClaudeRequest): string {
-  const card = cardSummary(req.card)
+  // Chat doesn't require a card
+  if (req.action === 'chat') return req.message ?? 'Hello'
+
+  const card = cardSummary(req.card!)
 
   switch (req.action) {
     case 'write_prompt':
@@ -112,7 +115,7 @@ Respond with JSON: { "action": "shorter", "text": "<condensed prompt text>" }`
     case 'suggest_deltas': {
       const side = req.side ?? 'yes'
       const oppositeSide = side === 'yes' ? 'no' : 'yes'
-      const oppositeDeltas = side === 'yes' ? req.card.no_deltas : req.card.yes_deltas
+      const oppositeDeltas = side === 'yes' ? req.card!.no_deltas : req.card!.yes_deltas
       return `Suggest pillar deltas for the ${side.toUpperCase()} choice on this card.
 
 Rules:
@@ -146,9 +149,6 @@ ICondition shapes:
 - { "type": "counter", "id": "<counter_name>", "op": ">", "value": 0 }
 - { "type": "entity", "id": "<character_slug>" }
 - { "type": "temporal", "field": "cycle", "op": ">", "value": 5 }`
-
-    case 'chat':
-      return req.message ?? 'Hello'
 
     case 'observations':
       return `Review this card and return observations about potential design issues. Be concise and specific.

@@ -112,7 +112,7 @@ export default function ClaudePanel({
   }
 
   async function sendChat() {
-    if (!card || !chatInput.trim()) return
+    if (!chatInput.trim()) return
     const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() }
     const nextHistory = [...chatHistory, userMsg]
     setChatHistory(nextHistory)
@@ -259,12 +259,12 @@ export default function ClaudePanel({
                     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat() }
                   }}
                   placeholder="Ask Claude…"
-                  disabled={!!busy || !card}
+                  disabled={!!busy}
                   className="flex-1 bg-gray-800 text-white rounded px-2 py-1 placeholder-gray-600 focus:outline-none disabled:opacity-40 text-xs"
                 />
                 <button
                   onClick={sendChat}
-                  disabled={!!busy || !card || !chatInput.trim()}
+                  disabled={!!busy || !chatInput.trim()}
                   className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded px-2 py-1"
                 >
                   ↑

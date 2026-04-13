@@ -181,7 +181,7 @@ export type ClaudeAction =
 
 export interface ClaudeRequest {
   action: ClaudeAction;
-  card: Card;
+  card: Card | null;  // null when chatting without a card selected
   side?: 'yes' | 'no';
   message?: string;
   history?: { role: 'user' | 'assistant'; content: string }[];
