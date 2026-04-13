@@ -152,7 +152,7 @@ Checks:
 - Pillar coverage (any pillar touched by fewer than 3 cards)
 - Character coverage (any character with zero cards)
 - Weight-0 cards with no chain target (orphaned chain slots)
-- Both YES and NO affecting the same pillar on any card
+- Both YES and NO moving the same pillar in the same direction (e.g. YES: ego +10, NO: ego +8 — one choice is strictly better, the dilemma is false)
 
 Returns:
 ```json
