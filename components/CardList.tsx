@@ -81,7 +81,7 @@ export default function CardList({
           onChange={e => setFilters(f => ({ ...f, bearer: e.target.value }))}
           className="w-full bg-gray-800 text-gray-300 text-xs rounded px-2 py-1"
         >
-          <option value="">All bearers</option>
+          <option value="">All characters</option>
           {characters.map(c => <option key={c.id} value={c.id}>{c.display_name}</option>)}
         </select>
         <input

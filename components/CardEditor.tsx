@@ -192,10 +192,10 @@ export default function CardEditor({
         </div>
       )}
 
-      {/* ── Bearer + metadata ───────────────────────────────── */}
+      {/* ── Character + metadata ───────────────────────────────── */}
       <div className="flex flex-wrap items-end gap-3 px-4 py-3 border-b border-gray-800">
         <div className="flex-1 min-w-[150px]">
-          <label className="text-xs text-gray-500 block mb-1">Bearer</label>
+          <label className="text-xs text-gray-500 block mb-1">Character</label>
           <select
             value={form.character_id ?? ''}
             onChange={e => setForm(f => ({ ...f, character_id: e.target.value || null }))}
