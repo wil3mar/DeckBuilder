@@ -4,18 +4,59 @@ import { useState, useCallback } from 'react'
 import CardList from '@/components/CardList'
 import CardEditor from '@/components/CardEditor'
 import ClaudePanel from '@/components/ClaudePanel'
+import type { Card, ICondition } from '@/lib/types'
 
 export default function DeckBuilderPage() {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
+  // Live form state — CardEditor reports here; ClaudePanel reads from here
+  const [liveCard, setLiveCard] = useState<Card | null>(null)
+
+  // Claude result overrides — set by ClaudePanel, consumed by CardEditor
+  const [promptOverride, setPromptOverride]       = useState<string | undefined>(undefined)
+  const [yesDeltaOverride, setYesDeltaOverride]   = useState<Record<string, number> | undefined>(undefined)
+  const [noDeltaOverride, setNoDeltaOverride]     = useState<Record<string, number> | undefined>(undefined)
+  const [conditionOverride, setConditionOverride] = useState<ICondition[] | undefined>(undefined)
+
   const handleSaved = useCallback((cardId: string) => {
     setSelectedCardId(cardId)
-    setRefreshKey(k => k + 1)   // re-fetches card list + nav counts
+    setRefreshKey(k => k + 1)
+    // Clear overrides after save
+    setPromptOverride(undefined)
+    setYesDeltaOverride(undefined)
+    setNoDeltaOverride(undefined)
+    setConditionOverride(undefined)
   }, [])
 
   const handleNewCard = useCallback(() => {
     setSelectedCardId(null)
+    setLiveCard(null)
+    setPromptOverride(undefined)
+    setYesDeltaOverride(undefined)
+    setNoDeltaOverride(undefined)
+    setConditionOverride(undefined)
+  }, [])
+
+  // Called by ClaudePanel — pulse the override into CardEditor then clear it
+  const handlePromptUpdate = useCallback((text: string) => {
+    setPromptOverride(text)
+    setTimeout(() => setPromptOverride(undefined), 100)
+  }, [])
+
+  const handleYesDeltaUpdate = useCallback((deltas: Record<string, number>) => {
+    setYesDeltaOverride(deltas)
+    setTimeout(() => setYesDeltaOverride(undefined), 100)
+  }, [])
+
+  const handleNoDeltaUpdate = useCallback((deltas: Record<string, number>) => {
+    setNoDeltaOverride(deltas)
+    setTimeout(() => setNoDeltaOverride(undefined), 100)
+  }, [])
+
+  const handleConditionsUpdate = useCallback((conditions: ICondition[]) => {
+    setConditionOverride(conditions)
+    setTimeout(() => setConditionOverride(undefined), 100)
   }, [])
 
   return (
@@ -38,11 +79,23 @@ export default function DeckBuilderPage() {
         <CardEditor
           cardId={selectedCardId}
           onSaved={handleSaved}
+          onFormChange={setLiveCard as (form: any) => void}
+          promptOverride={promptOverride}
+          yesDeltaOverride={yesDeltaOverride}
+          noDeltaOverride={noDeltaOverride}
+          conditionOverride={conditionOverride}
         />
       </div>
 
       {/* Claude panel */}
-      <ClaudePanel />
+      <ClaudePanel
+        card={liveCard}
+        cardId={selectedCardId}
+        onPromptUpdate={handlePromptUpdate}
+        onYesDeltaUpdate={handleYesDeltaUpdate}
+        onNoDeltaUpdate={handleNoDeltaUpdate}
+        onConditionsUpdate={handleConditionsUpdate}
+      />
     </div>
   )
 }
