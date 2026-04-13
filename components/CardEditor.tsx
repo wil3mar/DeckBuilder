@@ -11,6 +11,11 @@ import ConsequenceBuilder from './ConsequenceBuilder'
 interface CardEditorProps {
   cardId: string | null
   onSaved: (cardId: string) => void
+  onFormChange?: (form: CardForm) => void
+  promptOverride?: string
+  yesDeltaOverride?: Record<string, number>
+  noDeltaOverride?: Record<string, number>
+  conditionOverride?: ICondition[]
 }
 
 type CardForm = Omit<Card, 'id' | 'created_at' | 'updated_at'>
@@ -41,7 +46,15 @@ function emptyForm(): CardForm {
   }
 }
 
-export default function CardEditor({ cardId, onSaved }: CardEditorProps) {
+export default function CardEditor({
+  cardId,
+  onSaved,
+  onFormChange,
+  promptOverride,
+  yesDeltaOverride,
+  noDeltaOverride,
+  conditionOverride,
+}: CardEditorProps) {
   const [form, setForm] = useState<CardForm>(emptyForm())
   const [characters, setCharacters] = useState<Character[]>([])
   const [pillars, setPillars] = useState<Pillar[]>([])
@@ -76,6 +89,26 @@ export default function CardEditor({ cardId, onSaved }: CardEditorProps) {
       .then(({ id, created_at, updated_at, ...rest }) => setForm(rest))
   }, [cardId])
 
+  // Report live form state to parent (for ClaudePanel to read)
+  useEffect(() => { onFormChange?.(form) }, [form, onFormChange])
+
+  // Apply Claude result overrides
+  useEffect(() => {
+    if (promptOverride !== undefined) setForm(f => ({ ...f, prompt: promptOverride }))
+  }, [promptOverride])
+
+  useEffect(() => {
+    if (yesDeltaOverride) setForm(f => ({ ...f, yes_deltas: { ...f.yes_deltas, ...yesDeltaOverride } }))
+  }, [yesDeltaOverride])
+
+  useEffect(() => {
+    if (noDeltaOverride) setForm(f => ({ ...f, no_deltas: { ...f.no_deltas, ...noDeltaOverride } }))
+  }, [noDeltaOverride])
+
+  useEffect(() => {
+    if (conditionOverride?.length) setForm(f => ({ ...f, conditions: [...f.conditions, ...conditionOverride] }))
+  }, [conditionOverride])
+
   const handleSave = useCallback(async () => {
     setSaving(true)
     setSaveError(null)
@@ -97,6 +130,8 @@ export default function CardEditor({ cardId, onSaved }: CardEditorProps) {
     }
 
     const saved = await res.json()
+    // Invalidate Claude context cache — new card data changes pillar stats + flag registry
+    fetch('/api/claude/context', { method: 'POST' }).catch(() => {})
     onSaved(saved.id)
   }, [cardId, form, onSaved])
 
