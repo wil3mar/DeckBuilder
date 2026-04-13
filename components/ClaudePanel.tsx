@@ -20,6 +20,22 @@ interface ChatMessage {
 
 type BusyKey = string // `${action}` or `${action}_${side}`
 
+// Minimal markdown renderer: handles **bold** and preserves newlines
+function renderMarkdown(text: string): React.ReactNode {
+  return text.split('\n').map((line, i, arr) => {
+    const parts = line.split(/\*\*(.*?)\*\*/g)
+    const content = parts.map((part, j) =>
+      j % 2 === 1 ? <strong key={j}>{part}</strong> : part
+    )
+    return (
+      <span key={i}>
+        {content}
+        {i < arr.length - 1 && <br />}
+      </span>
+    )
+  })
+}
+
 async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
   const res = await fetch('/api/claude', {
     method: 'POST',
@@ -230,7 +246,7 @@ export default function ClaudePanel({
                         : 'bg-gray-800 text-gray-300 mr-4'
                     }`}
                   >
-                    {msg.content}
+                    {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
                   </div>
                 ))}
                 <div ref={chatEndRef} />

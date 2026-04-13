@@ -46,8 +46,8 @@ ${snapshot.character_bible ? `## Character Bible\n${snapshot.character_bible}\n`
 ${snapshot.deck_guide ? `## Deck Guide\n${snapshot.deck_guide}\n` : ''}
 
 ## Response Rules
-- Always respond with valid JSON matching the schema specified in the user message.
-- Never wrap JSON in markdown code blocks.
+- For ALL actions except 'chat': respond with valid JSON matching the schema in the user message. Never wrap JSON in markdown code blocks.
+- For the 'chat' action: respond with plain conversational text. No JSON. Markdown formatting (bold, bullet lists) is fine and encouraged for readability.
 - Keep prompt text in the present tense, second-person POV (the character speaks to the player).
 - Prompt text should be 2-4 sentences max.
 - Delta suggestions should be integers within pillar ranges. Never suggest the same pillar on both YES and NO sides — that wastes a card.
