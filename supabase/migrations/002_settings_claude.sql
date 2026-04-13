@@ -1,0 +1,3 @@
+ALTER TABLE settings
+  ADD COLUMN IF NOT EXISTS character_bible text NOT NULL DEFAULT '',
+  ADD COLUMN IF NOT EXISTS deck_guide text NOT NULL DEFAULT '';
