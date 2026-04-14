@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
+import { useAgentLoop, type ToolProgress } from '@/lib/useAgentLoop'
 import type { Card, ObservationItem, ICondition, ClaudeRequest, ClaudeResponse } from '@/lib/types'
 
 interface ClaudePanelProps {
@@ -13,14 +14,8 @@ interface ClaudePanelProps {
   onConditionsUpdate: (conditions: ICondition[]) => void
 }
 
-interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-}
+type BusyKey = string
 
-type BusyKey = string // `${action}` or `${action}_${side}`
-
-// Minimal markdown renderer: handles **bold** and preserves newlines
 function renderMarkdown(text: string): React.ReactNode {
   return text.split('\n').map((line, i, arr) => {
     const parts = line.split(/\*\*(.*?)\*\*/g)
@@ -49,6 +44,27 @@ async function callClaude(req: ClaudeRequest): Promise<ClaudeResponse> {
   return res.json()
 }
 
+function CompactProgress({ items }: { items: ToolProgress[] }) {
+  if (items.length === 0) return null
+  return (
+    <div className="space-y-0.5 px-2 py-1.5 bg-gray-900 rounded border border-gray-700 my-1">
+      {items.map(item => (
+        <div key={item.id} className="flex items-center gap-1.5 text-[10px]">
+          <span className={
+            item.status === 'running' ? 'text-indigo-400' :
+            item.status === 'done' ? 'text-green-400' : 'text-red-400'
+          }>
+            {item.status === 'running' ? '⟳' : item.status === 'done' ? '✓' : '✗'}
+          </span>
+          <span className={item.status === 'error' ? 'text-red-400' : 'text-gray-400'}>
+            {item.label}{item.detail ? ` — ${item.detail}` : ''}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ClaudePanel({
   card,
   cardId,
@@ -61,28 +77,29 @@ export default function ClaudePanel({
   const [observations, setObservations] = useState<ObservationItem[]>([])
   const [obsLoading, setObsLoading] = useState(false)
   const [busy, setBusy] = useState<BusyKey | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([])
+  const [actionError, setActionError] = useState<string | null>(null)
   const [chatInput, setChatInput] = useState('')
   const [chatOpen, setChatOpen] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
+  const { send, messages: chatMessages, toolProgress, isRunning: chatRunning, error: chatError, reset: resetChat } = useAgentLoop()
+
   // Clear chat when card changes
   useEffect(() => {
-    setChatHistory([])
+    resetChat()
     setChatInput('')
-  }, [cardId])
+  }, [cardId, resetChat])
 
-  // Auto-load observations when card ID changes (not on every keystroke)
+  // Auto-load observations when card ID changes
   useEffect(() => {
     if (!card) { setObservations([]); return }
     setObsLoading(true)
-    setError(null)
+    setActionError(null)
     callClaude({ action: 'observations', card })
       .then(res => {
         if (res.action === 'observations') setObservations(res.items)
       })
-      .catch(err => setError(err.message))
+      .catch(err => setActionError(err.message))
       .finally(() => setObsLoading(false))
   }, [cardId]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -90,7 +107,7 @@ export default function ClaudePanel({
     if (!card) return
     const key = side ? `${action}_${side}` : action
     setBusy(key)
-    setError(null)
+    setActionError(null)
     try {
       const res = await callClaude({ action, card, side })
       if (
@@ -105,36 +122,18 @@ export default function ClaudePanel({
         onConditionsUpdate(res.conditions)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Claude error')
+      setActionError(err instanceof Error ? err.message : 'Claude error')
     } finally {
       setBusy(null)
     }
   }
 
-  async function sendChat() {
-    if (!chatInput.trim()) return
-    const userMsg: ChatMessage = { role: 'user', content: chatInput.trim() }
-    const nextHistory = [...chatHistory, userMsg]
-    setChatHistory(nextHistory)
+  function handleSendChat() {
+    const text = chatInput.trim()
+    if (!text || chatRunning) return
     setChatInput('')
-    setBusy('chat')
-    setError(null)
-    try {
-      const res = await callClaude({
-        action: 'chat',
-        card,
-        message: userMsg.content,
-        history: chatHistory,
-      })
-      if (res.action === 'chat') {
-        setChatHistory(h => [...h, { role: 'assistant', content: res.reply }])
-        setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Claude error')
-    } finally {
-      setBusy(null)
-    }
+    send(text)
+    setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
   }
 
   function ActionBtn({
@@ -151,13 +150,15 @@ export default function ClaudePanel({
     return (
       <button
         onClick={() => runAction(action, side)}
-        disabled={!!busy || !card}
+        disabled={!!busy || !card || chatRunning}
         className="text-left text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         {isRunning ? '…' : label}
       </button>
     )
   }
+
+  const isBusy = !!busy || chatRunning
 
   return (
     <div className="bg-gray-900 border-l border-gray-800 flex flex-col text-xs overflow-hidden" style={{ width, minWidth: width, flexShrink: 0 }}>
@@ -234,10 +235,10 @@ export default function ClaudePanel({
           {chatOpen && (
             <div className="flex flex-col px-3 pb-2">
               <div className="space-y-1.5 max-h-48 overflow-y-auto mb-2">
-                {chatHistory.length === 0 && (
-                  <p className="text-gray-700 italic">Ask Claude anything about this card…</p>
+                {chatMessages.length === 0 && toolProgress.length === 0 && (
+                  <p className="text-gray-700 italic">Ask Claude anything…</p>
                 )}
-                {chatHistory.map((msg, i) => (
+                {chatMessages.map((msg, i) => (
                   <div
                     key={i}
                     className={`rounded px-2 py-1 leading-snug ${
@@ -249,6 +250,8 @@ export default function ClaudePanel({
                     {msg.role === 'assistant' ? renderMarkdown(msg.content) : msg.content}
                   </div>
                 ))}
+                {/* Inline tool progress during chat */}
+                <CompactProgress items={toolProgress} />
                 <div ref={chatEndRef} />
               </div>
               <div className="flex gap-1">
@@ -256,28 +259,28 @@ export default function ClaudePanel({
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat() }
+                    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendChat() }
                   }}
                   placeholder="Ask Claude…"
-                  disabled={!!busy}
+                  disabled={isBusy}
                   className="flex-1 bg-gray-800 text-white rounded px-2 py-1 placeholder-gray-600 focus:outline-none disabled:opacity-40 text-xs"
                 />
                 <button
-                  onClick={sendChat}
-                  disabled={!!busy || !chatInput.trim()}
+                  onClick={handleSendChat}
+                  disabled={isBusy || !chatInput.trim()}
                   className="bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded px-2 py-1"
                 >
-                  ↑
+                  {chatRunning ? '…' : '↑'}
                 </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Error */}
-        {error && (
+        {/* Errors */}
+        {(actionError || chatError) && (
           <div className="px-3 py-2 text-red-400 bg-red-900/20 shrink-0 leading-snug">
-            {error}
+            {actionError || chatError}
           </div>
         )}
       </div>

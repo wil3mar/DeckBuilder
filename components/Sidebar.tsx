@@ -30,7 +30,13 @@ export default function Sidebar() {
   const [counts, setCounts] = useState<NavCounts | null>(null)
 
   useEffect(() => {
-    fetch('/api/nav-counts').then(r => r.json()).then(setCounts)
+    function fetchCounts() {
+      fetch('/api/nav-counts').then(r => r.json()).then(setCounts)
+    }
+
+    fetchCounts()
+    window.addEventListener('game:content-updated', fetchCounts)
+    return () => window.removeEventListener('game:content-updated', fetchCounts)
   }, [])
 
   return (

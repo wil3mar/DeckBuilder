@@ -169,6 +169,12 @@ export interface ObservationItem {
   message: string;
 }
 
+export interface ToolCall {
+  id: string
+  name: string
+  input: Record<string, unknown>
+}
+
 export type ClaudeAction =
   | 'write_prompt'
   | 'sharpen_tone'
@@ -181,10 +187,12 @@ export type ClaudeAction =
 
 export interface ClaudeRequest {
   action: ClaudeAction;
-  card: Card | null;  // null when chatting without a card selected
+  card?: Card | null;  // null when chatting without a card selected
   side?: 'yes' | 'no';
   message?: string;
   history?: { role: 'user' | 'assistant'; content: string }[];
+  // For agentic loop: full message history in Anthropic format (content can be string or content blocks)
+  messages?: Array<{ role: 'user' | 'assistant'; content: unknown }>;
 }
 
 export type ClaudeResponse =
@@ -192,7 +200,8 @@ export type ClaudeResponse =
   | { action: 'suggest_deltas'; deltas: Record<string, number> }
   | { action: 'suggest_conditions'; conditions: ICondition[] }
   | { action: 'chat'; reply: string }
-  | { action: 'observations'; items: ObservationItem[] };
+  | { action: 'observations'; items: ObservationItem[] }
+  | { action: 'tool_use'; calls: ToolCall[]; assistantContent: unknown[] };
 
 // ── API convenience types ─────────────────────────────────────
 
