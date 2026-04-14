@@ -9,9 +9,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'characters must be a non-empty array' }, { status: 400 })
   }
 
+  const STRING_FIELDS = ['voice', 'motivation', 'dynamic', 'escalation']
+  const sanitized = characters.map((c: Record<string, unknown>) => {
+    const out = { ...c }
+    for (const f of STRING_FIELDS) if (out[f] == null) out[f] = ''
+    return out
+  })
+
   const { data, error } = await supabase
     .from('characters')
-    .upsert(characters, { onConflict: 'slug' })
+    .upsert(sanitized, { onConflict: 'slug' })
     .select('id')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
